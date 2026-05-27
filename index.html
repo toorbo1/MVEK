@@ -6,89 +6,62 @@
 <title>Бесконечный Семестр</title>
 <style>
 
-  /* ─── СБРОС ─────────────────────────────────────── */
-  *, *::before, *::after {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-  html {
-    scroll-behavior: smooth;
-  }
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
 
-  /* ─── ФОНОВЫЙ ЦВЕТ СТРАНИЦЫ (тёмный, как дизайн) ── */
   body {
     background: #19191c;
     min-height: 100vh;
   }
 
-  /* ─── ЦЕНТРАЛЬНАЯ КОЛОНКА ──────────────────────── */
-  /*  Мобиль  < 480px  : 100% ширины                  */
-  /*  Планшет 480–900px : до 520px, по центру          */
-  /*  Десктоп > 900px   : до 600px, по центру          */
+  /* Телефон: на всю ширину экрана */
   .page {
     width: 100%;
-    max-width: 520px;
+    max-width: 100%;
     margin: 0 auto;
   }
 
-  /* ─── ВСЕ БЛОКИ — КАРТИНКИ НА ВСИЮ ШИРИНУ КОЛОНКИ */
   .page img {
     width: 100%;
     display: block;
-    /* Чёткость при масштабировании */
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
   }
 
-  /* ─── ШАПКА ЗАЛИПАЕТ СВЕРХУ ─────────────────────── */
+  @media (min-width: 600px) {
+    .page {
+      max-width: 650px;
+      box-shadow:
+        -60px 0 80px 40px rgba(0,0,0,0.85),
+         60px 0 80px 40px rgba(0,0,0,0.85);
+    }
+  }
+
+  @media (min-width: 900px) {
+    .page { max-width: 800px; }
+  }
+
+  @media (min-width: 1200px) {
+    .page { max-width: 950px; }
+  }
+
+  /* Шапка залипает сверху */
   .header-wrap {
     position: sticky;
     top: 0;
     z-index: 999;
-    background: #19191c; /* подложка на крупных экранах */
+    background: #19191c;
   }
 
-  /* ─── ПРОЗРАЧНЫЕ КНОПКИ ПОВЕРХ ШАПКИ ───────────── */
-  .header-inner {
-    position: relative;
-  }
+  .header-inner { position: relative; }
+
+  /* Прозрачные кнопки поверх шапки */
   .nav-link {
     position: absolute;
-    top: 0;
-    bottom: 0;
+    top: 0; bottom: 0;
     cursor: pointer;
     text-decoration: none;
-    /* Делаем зоны чуть больше для удобного тапа */
-    padding: 4px 0;
   }
-  /* «Об игре»  ≈ левые 28% шапки */
-  .nav-link.about { left: 0;   width: 28%; }
-  /* «Наша команда» ≈ правые 31% шапки */
-  .nav-link.team  { right: 0;  width: 31%; }
-
-  /* ─── ПЛАНШЕТ : немного шире ────────────────────── */
-  @media (min-width: 521px) {
-    .page {
-      max-width: 580px;
-    }
-  }
-
-  /* ─── ДЕСКТОП : ещё шире, боковые поля оформляем ── */
-  @media (min-width: 769px) {
-    .page {
-      max-width: 640px;
-      /* Лёгкая тень — отделяет контент от фона */
-      box-shadow: 0 0 60px rgba(0,0,0,0.6);
-    }
-  }
-
-  /* ─── ШИРОКИЙ ДЕСКТОП ────────────────────────────── */
-  @media (min-width: 1200px) {
-    .page {
-      max-width: 680px;
-    }
-  }
+  .nav-link.about { left: 0;  width: 28%; }
+  .nav-link.team  { right: 0; width: 31%; }
 
 </style>
 </head>
@@ -96,35 +69,33 @@
 
 <div class="page">
 
-  <!-- ══ №1 ШАПКА ══════════════════════════════════ -->
+  <!-- №1 ШАПКА -->
   <div class="header-wrap">
     <div class="header-inner">
-      <img src="Шапка (header) №1.png" alt="Шапка">
-      <!-- Кнопка «Об игре» → секция #about -->
+      <img src="header.png" alt="Шапка">
       <a href="#about" class="nav-link about" aria-label="Об игре"></a>
-      <!-- Кнопка «Наша команда» → секция #team -->
       <a href="#team"  class="nav-link team"  aria-label="Наша команда"></a>
     </div>
   </div>
 
-  <!-- ══ №2 ГЕРОЙ ═══════════════════════════════════ -->
-  <img src="Контент №2.png" alt="Бесконечный Семестр — Сессия никогда не заканчивается">
+  <!-- №2 ГЕРОЙ -->
+  <img src="hero.png" alt="Бесконечный Семестр">
 
-  <!-- ══ №3 CTA / СКАЧАТЬ  (якорь «Об игре») ═══════ -->
+  <!-- №3 CTA -->
   <div id="about">
-    <img src="Контент (1) №3.png" alt="Скачать игру">
+    <img src="cta.png" alt="Скачать">
   </div>
 
-  <!-- ══ №4 ГЕЙМПЛЕЙ ═══════════════════════════════ -->
-  <img src="примеры №4.png" alt="Геймплей — Управляй грифоном">
+  <!-- №4 ГЕЙМПЛЕЙ -->
+  <img src="gameplay.png" alt="Геймплей">
 
-  <!-- ══ №5 КОМАНДА  (якорь «Наша команда») ════════ -->
+  <!-- №5 КОМАНДА -->
   <div id="team">
-    <img src="Контент (4) №5.png" alt="Прайм Левел — Наша команда">
+    <img src="team.png" alt="Прайм Левел">
   </div>
 
-  <!-- ══ №6 ФУТЕР ═══════════════════════════════════ -->
-  <img src="Подвал (footer) №6.png" alt="Подвал">
+  <!-- №6 ФУТЕР -->
+  <img src="footer.png" alt="Футер">
 
 </div>
 
