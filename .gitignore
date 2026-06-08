@@ -1,0 +1,4 @@
+# Сборки раздаются через GitHub Releases, не храним их в репозитории
+MVEC.apk
+MVEC.exe
+.claude/

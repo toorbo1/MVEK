@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Бесконечный Семестр</title>
+<style>
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: #19191c;
+    min-height: 100vh;
+  }
+
+  /* Телефон: на всю ширину экрана */
+  .page {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+
+  .page img {
+    width: 100%;
+    display: block;
+  }
+
+  @media (min-width: 600px) {
+    .page {
+      max-width: 650px;
+      box-shadow:
+        -60px 0 80px 40px rgba(0,0,0,0.85),
+         60px 0 80px 40px rgba(0,0,0,0.85);
+    }
+  }
+
+  @media (min-width: 900px) {
+    .page { max-width: 800px; }
+  }
+
+  @media (min-width: 1200px) {
+    .page { max-width: 950px; }
+  }
+
+  /* Шапка залипает сверху */
+  .header-wrap {
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    background: #19191c;
+  }
+
+  .header-inner { position: relative; }
+
+  /* Прозрачные кнопки поверх шапки */
+  .nav-link {
+    position: absolute;
+    top: 0; bottom: 0;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .nav-link.about { left: 0;  width: 28%; }
+  .nav-link.team  { right: 0; width: 31%; }
+
+  /* Блок «Скачать» с кликабельной кнопкой поверх картинки */
+  .cta-wrap { position: relative; line-height: 0; }
+  .download-zone {
+    position: absolute;
+    left: 29.9%;
+    top: 70.8%;
+    width: 40.2%;
+    height: 16.3%;
+    cursor: pointer;
+    border-radius: 9999px;
+    /* подсветка при наведении/нажатии — лёгкая, кнопка нарисована в картинке */
+    transition: background .12s, transform .08s;
+  }
+  .download-zone:hover  { background: rgba(255,255,255,0.12); }
+  .download-zone:active { transform: scale(0.97); }
+
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- №1 ШАПКА -->
+  <div class="header-wrap">
+    <div class="header-inner">
+      <img src="header.png" alt="Шапка">
+      <a href="#about" class="nav-link about" aria-label="Об игре"></a>
+      <a href="#team"  class="nav-link team"  aria-label="Наша команда"></a>
+    </div>
+  </div>
+
+  <!-- №2 ГЕРОЙ -->
+  <img src="hero.png" alt="Бесконечный Семестр">
+
+  <!-- №3 CTA -->
+  <div id="about" class="cta-wrap">
+    <img src="ger.png" alt="Скачать">
+    <a id="download-btn" class="download-zone" href="#"
+       aria-label="Скачать"></a>
+  </div>
+
+  <!-- №4 ГЕЙМПЛЕЙ -->
+  <img src="gameplay.png" alt="Геймплей">
+
+  <!-- №5 КОМАНДА -->
+  <div id="team">
+    <img src="team.png" alt="Прайм Левел">
+  </div>
+
+  <!-- №6 ФУТЕР -->
+  <img src="footer.png" alt="Футер">
+
+</div>
+
+<script>
+  /* ── Кнопка «Скачать»: ПК → MVEC.exe, телефон → MVEC.apk ───────────
+     Ссылки берутся из GitHub Releases. База вычисляется из адреса
+     GitHub Pages (<логин>.github.io/<репозиторий>/), поэтому ничего
+     не нужно прописывать вручную. */
+  function releaseBase() {
+    var host = location.hostname;
+    var repo = location.pathname.split('/').filter(Boolean)[0];
+    if (host.indexOf('github.io') !== -1 && repo) {
+      var user = host.split('.')[0];
+      return 'https://github.com/' + user + '/' + repo + '/releases/latest/download/';
+    }
+    return null; // локальный просмотр / не на GitHub Pages
+  }
+
+  function isMobile() {
+    return /android|iphone|ipad|ipod|iemobile|blackberry|opera mini|mobile/i.test(navigator.userAgent);
+  }
+
+  document.getElementById('download-btn').addEventListener('click', function (e) {
+    e.preventDefault();
+    var base = releaseBase();
+    if (!base) { alert('Скачивание заработает на опубликованном сайте (GitHub Pages).'); return; }
+    var file = isMobile() ? 'MVEC.apk' : 'MVEC.exe';
+    window.location.href = base + file;
+  });
+</script>
+
+</body>
+</html>
