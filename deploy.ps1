@@ -6,14 +6,30 @@
 #     powershell -ExecutionPolicy Bypass -File deploy.ps1 MVEC
 #  Перед запуском один раз выполни:  gh auth login
 # ============================================================
-param([string]$Repo = "MVEC")
+param([string]$Repo = "MVEK")
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
 # Пути к сборкам
-$EXE = "C:\Users\User\Desktop\GriffonMazeHTML\dist-exe\MVEC.exe"
-$apkItem = Get-ChildItem "C:\Users\User\Desktop\GriffonMazeHTML\android\app\build\outputs\apk\debug\*.apk" -ErrorAction SilentlyContinue | Select-Object -First 1
+$GAME = "C:\Users\User\Desktop\GriffonMazeHTML"
+$EXE = "$GAME\dist-exe\MVEC.exe"
+$apkItem = Get-ChildItem "$GAME\android\app\build\outputs\apk\debug\*.apk" -ErrorAction SilentlyContinue | Select-Object -First 1
 $APK = if ($apkItem) { $apkItem.FullName } else { "" }
+
+# 0. Обновляем веб-версию игры в ./play (для iPhone и игры в браузере)
+Write-Host "== Обновляю веб-версию игры в ./play ==" -ForegroundColor Cyan
+if (Test-Path "$GAME\www\index.html") {
+    if (Test-Path ".\play") { Remove-Item ".\play" -Recurse -Force }
+    New-Item -ItemType Directory -Path ".\play" | Out-Null
+    Copy-Item "$GAME\www\*" ".\play\" -Recurse -Force
+    # тёмный фон для веба (APK не трогаем)
+    $idx = ".\play\index.html"
+    $s = Get-Content $idx -Raw
+    if ($s -notmatch 'html\{background:#19191c') {
+        $s = $s -replace '</head>', "<style>html{background:#19191c;}</style>`n</head>"
+        Set-Content $idx $s -Encoding UTF8
+    }
+}
 
 Write-Host "== Проверяю вход в GitHub ==" -ForegroundColor Cyan
 gh auth status | Out-Host

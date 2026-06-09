@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#27272c">
+<title>MVEC</title>
+<!-- PWA: установка на iPhone (Safari → На экран «Домой») и Android -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MVEC">
+<link rel="apple-touch-icon" href="logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; outline:none; }
+body {
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background:transparent; font-family:'Nunito','Arial Black',sans-serif;
+  -webkit-user-select:none; user-select:none;
+  overflow:hidden; position:fixed; width:100%; height:100%;
+}
+
+/* ── Phone frame ─────────────────────────────────────────────── */
+.screen {
+  position:relative; width:402px; height:874px;
+  overflow:hidden; border-radius:0;
+  box-shadow:none;
+}
+.page { position:absolute; inset:0; opacity:0; pointer-events:none; transition:opacity .28s ease; }
+.page.active { opacity:1; pointer-events:auto; }
+
+/* ════ ОБЩИЙ ФОН (меню / победа / поражение / магазин) ══════════ */
+.dark-bg {
+  position:absolute; inset:0;
+  background:radial-gradient(ellipse 75% 65% at 50% 40%,
+    #737378 0%,#555559 40%,#363639 72%,#27272c 100%);
+}
+
+/* ════ МЕНЮ ══════════════════════════════════════════════════════ */
+/* Монеты x=20 y=49 w=110 h=60 */
+.coin-pill {
+  position:absolute; left:20px; top:45px; width:110px; height:60px;
+  background:white; border-radius:30px;
+  display:flex; align-items:center; padding:0 10px; gap:8px;
+  box-shadow:0 3px 10px rgba(0,0,0,.3);
+}
+.coin-count { font-size:22px; font-weight:900; color:#141412; }
+
+/* Шестерёнка x=322 y=49 w=60 h=60 */
+.gear-wrap {
+  position:absolute; left:322px; top:45px; width:60px; height:60px;
+  background:white; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; box-shadow:0 3px 10px rgba(0,0,0,.3);
+  transition:transform .2s;
+}
+.gear-wrap:hover { transform:rotate(40deg); }
+
+/* а1.png — логотип двери: занимает то же место что и .door-wrap */
+.menu-logo {
+  position:absolute; left:88px; top:128px; width:238px; height:auto;
+  filter:drop-shadow(2px 6px 14px rgba(0,0,0,.4));
+}
+
+.game-title-img {
+  position:absolute; left:30px; top:510px; width:342px; height:auto;
+  mix-blend-mode:screen;
+  filter:drop-shadow(0 2px 8px rgba(0,0,0,.6));
+}
+
+/* НАЧАТЬ */
+.btn-start-wrap {
+  position:absolute; left:85px; top:603px; width:238px; height:95px;
+  background:#fff; border-radius:50px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; box-shadow:0 6px 22px rgba(0,0,0,.32);
+  transition:transform .1s,box-shadow .1s;
+}
+.btn-start-wrap:hover { transform:translateY(-2px); box-shadow:0 10px 28px rgba(0,0,0,.4); }
+.btn-start-wrap:active { transform:scale(.97); }
+.btn-start {
+  width:228px; height:85px;
+  background:linear-gradient(180deg,#7ed436,#5bb820); border-radius:46px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:46px; font-weight:900; color:#141412; letter-spacing:2px; user-select:none;
+}
+
+/* Магазин */
+.btn-shop-img {
+  position:absolute; left:28px; top:749px; width:346px; height:auto;
+  cursor:pointer; user-select:none;
+  transition:filter .12s, transform .1s;
+  filter:drop-shadow(0 4px 12px rgba(0,0,0,.35));
+}
+.btn-shop-img:hover  { filter:drop-shadow(0 4px 12px rgba(0,0,0,.35)) brightness(1.1); }
+.btn-shop-img:active { transform:scale(.97); }
+
+/* Пауза — модал */
+#modal-pause {
+  position:absolute; inset:0; z-index:300; display:none;
+  align-items:center; justify-content:center;
+  background:rgba(208,210,212,0.92);
+}
+#modal-pause.open { display:flex; }
+.pause-continue-btn {
+  width:290px; height:76px; border-radius:42px;
+  border:2.5px solid #141412;
+  background:linear-gradient(180deg,#f2f2f2 0%,#d4d4d4 100%);
+  font-family:inherit; font-size:26px; font-weight:900; color:#141412;
+  letter-spacing:1px; cursor:pointer;
+  box-shadow:0 4px 16px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.8);
+  transition:filter .1s, transform .1s;
+}
+.pause-continue-btn:hover  { filter:brightness(1.06); transform:translateY(-2px); }
+.pause-continue-btn:active { transform:scale(.97); }
+
+/* Декорации */
+.bug { position:absolute; opacity:.7; }
+
+/* Звёзды-враги с вращением */
+.star-enemy {
+  position:absolute;
+  transform-origin:center center;
+}
+.star-enemy.spin-cw  { animation:starSpinCW  6s linear infinite; }
+.star-enemy.spin-ccw { animation:starSpinCCW 8s linear infinite; }
+@keyframes starSpinCW  { from{transform:rotate(0deg)}   to{transform:rotate(360deg)} }
+@keyframes starSpinCCW { from{transform:rotate(0deg)}   to{transform:rotate(-360deg)} }
+
+/* ════ ИГРА ══════════════════════════════════════════════════════ */
+.game-bg { position:absolute; inset:0; background:url('iPhone 16 - 1.png') center/cover no-repeat; }
+/* .top-bar removed */
+.bunting {
+  position:absolute; top:-30px; left:0;
+  width:402px; height:160px;
+  pointer-events:none;
+  background: url('Group 55.png') no-repeat left top;
+  background-size: 402px 160px;
+  mix-blend-mode: screen;
+}
+.bunting-r {
+  position:absolute; left:0;
+  width:402px; height:160px;
+  pointer-events:none;
+  background: url('Group 55.png') no-repeat left top;
+  background-size: 402px 160px;
+  mix-blend-mode: screen;
+  transform: scaleX(-1);
+}
+.ctrl-btn {
+  position:absolute; top:81px; width:49px; height:49px;
+  background:white; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.4); transition:transform .12s;
+}
+.ctrl-btn:hover { transform:scale(1.08); }
+.ctrl-btn-pause { left:21px; }
+.ctrl-btn-home  { left:332px; }
+.maze-container {
+  position:absolute; left:21px; top:136px; width:360px; height:682px;
+  background:url('Rectangle 45.png') center/cover no-repeat;
+  border-radius:0; overflow:hidden;
+}
+#mazeCanvas { position:absolute; left:21px; top:21px; }
+.maze-player {
+  position:absolute; width:24px; height:24px;
+  background: url('griffon_idle.png') center/contain no-repeat;
+  z-index:10;
+  filter:drop-shadow(0 0 4px rgba(107,191,41,.7));
+}
+/* Кнопка невидимости — в верхнем ряду рядом с паузой, только значок глаза */
+.invis-btn {
+  position:absolute; top:81px; left:78px; width:49px; height:49px;
+  border-radius:50%;
+  display:none; align-items:center; justify-content:center;
+  background:linear-gradient(180deg,#5bbfdf,#3da0c4);
+  color:#0d2b34; font-weight:900; font-size:20px;
+  cursor:pointer; z-index:20; box-shadow:0 2px 8px rgba(0,0,0,.4);
+  user-select:none; transition:transform .12s, filter .1s;
+}
+.invis-btn:hover  { transform:scale(1.08); }
+.invis-btn:active { transform:scale(.92); }
+.invis-btn svg { width:26px; height:26px; }
+.invis-btn.cooldown {
+  background:linear-gradient(180deg,#9aa0a6,#6f767c);
+  color:#fff; cursor:default; pointer-events:none;
+}
+.invis-btn.cooldown svg { display:none; } /* во время отсчёта вместо глаза — число */
+.invis-btn-label { display:none; font-weight:900; font-size:20px; color:#fff; }
+.invis-btn.cooldown .invis-btn-label { display:block; }
+.in-game-enemy {
+  animation:enemySpinIG 1.5s linear infinite;
+  will-change:left,top;
+}
+@keyframes enemySpinIG { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+.maze-exit {
+  position:absolute; width:18px; height:18px; border-radius:4px;
+  background:radial-gradient(circle at 35% 30%,#ffe566,#f5a800);
+  box-shadow:0 0 12px rgba(255,200,0,.9);
+  animation:pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.25)} }
+
+/* ════ WIN / LOSE КАРТОЧКИ ═══════════════════════════════════════ */
+.result-card {
+  position:absolute; left:50%; top:50%;
+  transform:translate(-50%,-50%);
+  width:370px; height:804px;       /* пропорция фонов 1608×3496 → накладки 1:1 */
+  background-size:cover;
+}
+.win-card  { background:url('ss.png') center/cover no-repeat; }
+.lose-card { background:url('dc.png') center/cover no-repeat; }
+
+/* Бейдж с числом — перекрывает бейдж, впечатанный в фон */
+.result-coin-badge {
+  position:absolute; left:50%; top:266px; transform:translateX(-50%);
+  display:flex; align-items:center; justify-content:center; gap:6px; z-index:20;
+  min-width:76px; background:#ffffff; border-radius:22px;
+  padding:8px 20px; white-space:nowrap;
+  font-size:18px; font-weight:900; color:#333;
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
+}
+/* Кнопки результата — прозрачные клик-зоны поверх впечатанных кнопок */
+.result-btn1, .result-btn2 {
+  position:absolute; background:transparent;
+  cursor:pointer; user-select:none; z-index:18;
+  transition:filter .1s;
+}
+.result-btn1:active, .result-btn2:active { filter:brightness(1.2); }
+.deco-star { position:absolute; pointer-events:none; }
+
+/* Win / Lose — прозрачный фон + лёгкое затемнение игры позади */
+#page-win, #page-lose {
+  background: rgba(0,0,0,0.45);
+  z-index: 150;
+}
+
+/* ════ МАГАЗИН ═══════════════════════════════════════════════════ */
+#page-shop .dark-bg { background:url('iPhone 16 - 2.png') center/cover no-repeat; }
+
+.shop-card {
+  position:absolute; left:20px; width:362px;
+  background:#808080; border-radius:22px;
+  display:flex; padding:16px; gap:12px;
+  box-shadow:0 6px 20px rgba(0,0,0,.35);
+}
+.shop-card-1 { top:100px; height:255px; }
+.shop-card-2 { top:368px; height:260px; }
+
+.shop-left { display:flex; flex-direction:column; gap:10px; flex:1; }
+.shop-info-box {
+  background:#959595; border-radius:14px; padding:12px; flex:1;
+  display:flex; flex-direction:column; gap:6px;
+  box-shadow:0 6px 18px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.18);
+}
+.shop-card-title { font-size:18px; font-weight:900; color:#141412; letter-spacing:.5px; }
+.shop-card-desc  { font-size:11px; font-weight:700; color:#555; }
+.shop-stat-box {
+  border-radius:10px; padding:8px 10px; margin-top:4px;
+  font-size:12px; font-weight:700; line-height:1.4;
+  display:flex; align-items:center; gap:6px;
+}
+.shop-stat-locked { background:#b83030; color:white; }
+.shop-stat-level  { background:#f0f0f0; color:#141412; }
+.shop-stat-arrow  { font-size:16px; margin:0 4px; }
+.shop-btn {
+  width:140px; height:46px; border-radius:26px; border:none;
+  font-family:inherit; font-size:18px; font-weight:900; color:#141412;
+  cursor:pointer; letter-spacing:.5px;
+  transition:filter .12s,transform .1s;
+}
+.shop-btn:hover  { filter:brightness(1.1); transform:translateY(-1px); }
+.shop-btn:active { transform:scale(.97); }
+.shop-btn-blue  { background:linear-gradient(180deg,#5bbfdf,#3da0c4); }
+.shop-btn-green { background:linear-gradient(180deg,#7ed436,#5bb820); }
+
+.shop-right {
+  width:145px; display:flex; align-items:flex-end; justify-content:center;
+  padding-bottom:4px;
+}
+.shop-right img { width:130px; height:auto; filter:drop-shadow(0 4px 10px rgba(0,0,0,.3)); }
+
+/* Кнопка ГЛАВНОЕ МЕНЮ в магазине */
+.shop-back-btn {
+  position:absolute; left:50%; transform:translateX(-50%);
+  top:644px; width:210px; height:65px;
+  background:#f5f0b8; border-radius:36px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; font-weight:900; color:#141412; line-height:1.2;
+  cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.25);
+  text-align:center;
+  transition:filter .1s,transform .1s;
+}
+.shop-back-btn:hover  { filter:brightness(1.06); transform:translateX(-50%) translateY(-2px); }
+.shop-back-btn:active { transform:translateX(-50%) scale(.97); }
+
+/* Жуки в магазине (справа) */
+.shop-bugs { position:absolute; right:8px; top:200px; display:flex; flex-direction:column; gap:30px; }
+
+/* ════ МОДАЛ: НАСТРОЙКИ ══════════════════════════════════════════ */
+#modal-settings {
+  position:absolute; inset:0;
+  background:rgba(200,198,200,.82);
+  backdrop-filter:blur(2px);
+  z-index:200; display:none;
+  align-items:center; justify-content:center;
+}
+#modal-settings.open { display:flex; }
+
+.settings-card {
+  width:370px; background:#9a8690; border-radius:28px;
+  padding:22px 24px 26px;
+  position:relative;
+  box-shadow:0 10px 32px rgba(0,0,0,.4);
+}
+.settings-close {
+  position:absolute; top:14px; right:14px;
+  width:34px; height:34px; border-radius:50%;
+  border:2px solid #141412; background:transparent;
+  font-size:16px; font-weight:900; color:#141412;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:background .12s;
+}
+.settings-close:hover { background:rgba(0,0,0,.15); }
+
+.settings-row { display:flex; gap:20px; margin-top:10px; }
+
+.settings-pill {
+  flex:1; background:white; border-radius:20px;
+  display:flex; padding:6px;gap:4px;
+  box-shadow:inset 0 1px 4px rgba(0,0,0,.12);
+}
+.settings-toggle {
+  flex:1; height:56px; border-radius:15px; border:none;
+  background:transparent; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:background .15s;
+}
+.settings-toggle.active { background:#e8e8e8; }
+.settings-toggle:hover:not(.active) { background:rgba(0,0,0,.05); }
+.settings-toggle svg { width:28px; height:28px; }
+
+/* ════ ЛАЗЕРЫ ═══════════════════════════════════════════════════ */
+.wall-star {
+  position:absolute; z-index:8; pointer-events:none;
+  width:22px; height:22px;
+  animation:wallStarSpin 2.5s linear infinite;
+}
+@keyframes wallStarSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes projGlow {
+  0%,100% { filter:drop-shadow(0 0 6px rgba(255,120,0,1)) brightness(1.1); }
+  50%      { filter:drop-shadow(0 0 16px rgba(255,230,0,1)) brightness(1.7); }
+}
+.laser-proj {
+  position:absolute; z-index:22; pointer-events:none;
+  width:36px; height:36px;
+  animation:projGlow .2s ease-in-out infinite;
+}
+
+/* ════ ВИНЬЕТКА (затемнение сверху и снизу) ══════════════════════ */
+.screen-vignette {
+  position:absolute; inset:0; pointer-events:none; z-index:100;
+  background:
+    linear-gradient(to bottom, rgba(0,0,0,.60) 0%, transparent 16%),
+    linear-gradient(to top,    rgba(0,0,0,.60) 0%, transparent 16%);
+}
+</style>
+<style>html{background:#19191c;}</style>
+</head>
+<body>
+<audio id="bgMusic" src="path-to-achievement_88739.mp3" loop preload="auto"></audio>
+<div class="screen">
+
+  <!-- ════════════ ГЛАВНОЕ МЕНЮ ════════════ -->
+  <div class="page active" id="page-menu">
+    <div class="dark-bg"></div>
+
+    <!-- Звёзды (вращаются) -->
+    <img src="enemy.png" class="star-enemy spin-cw"
+         style="left:220px;top:22px;width:188px;
+                filter:drop-shadow(0 0 8px rgba(200,56,0,.5));">
+    <img src="enemy.png" class="star-enemy spin-ccw"
+         style="left:-58px;top:408px;width:172px;
+                filter:drop-shadow(0 0 8px rgba(200,56,0,.4));">
+
+    <!-- Жуки -->
+    <svg class="bug" style="left:84px;top:120px;width:26px;height:26px" viewBox="0 0 29 27"><ellipse cx="14.5" cy="15" rx="8" ry="11" fill="#141414"/><ellipse cx="14.5" cy="9" rx="6" ry="5" fill="#141414"/><line x1="8" y1="12" x2="2" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="16" x2="1" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="20" x2="2" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="27" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="16" x2="28" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="20" x2="27" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/></svg>
+    <svg class="bug" style="left:7px;top:210px;width:22px;height:22px;transform:rotate(-10deg)" viewBox="0 0 29 27"><ellipse cx="14.5" cy="15" rx="8" ry="11" fill="#141414"/><ellipse cx="14.5" cy="9" rx="6" ry="5" fill="#141414"/><line x1="8" y1="12" x2="2" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="16" x2="1" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="20" x2="2" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="27" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="16" x2="28" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="20" x2="27" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/></svg>
+    <svg class="bug" style="left:50px;top:164px;width:20px;height:20px;transform:rotate(15deg)" viewBox="0 0 29 27"><ellipse cx="14.5" cy="15" rx="8" ry="11" fill="#141414"/><ellipse cx="14.5" cy="9" rx="6" ry="5" fill="#141414"/><line x1="8" y1="12" x2="2" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="16" x2="1" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="20" x2="2" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="27" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="16" x2="28" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="20" x2="27" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/></svg>
+    <svg class="bug" style="left:358px;top:606px;width:22px;height:22px;transform:rotate(30deg)" viewBox="0 0 29 27"><ellipse cx="14.5" cy="15" rx="8" ry="11" fill="#141414"/><ellipse cx="14.5" cy="9" rx="6" ry="5" fill="#141414"/><line x1="8" y1="12" x2="2" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="16" x2="1" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="20" x2="2" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="27" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="16" x2="28" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="20" x2="27" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/></svg>
+    <svg class="bug" style="left:297px;top:704px;width:21px;height:21px;transform:rotate(-20deg)" viewBox="0 0 29 27"><ellipse cx="14.5" cy="15" rx="8" ry="11" fill="#141414"/><ellipse cx="14.5" cy="9" rx="6" ry="5" fill="#141414"/><line x1="8" y1="12" x2="2" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="16" x2="1" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="20" x2="2" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="27" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="16" x2="28" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="20" x2="27" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/></svg>
+
+    <!-- Монеты -->
+    <div class="coin-pill">
+      <img src="coin.png" style="width:36px;height:36px;flex-shrink:0;">
+      <span class="coin-count" id="menu-coin-count">0</span>
+    </div>
+
+    <!-- Шестерёнка → настройки -->
+    <div class="gear-wrap" onclick="openModal('settings')">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#555"
+           stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </div>
+
+    <!-- а1.png — заменяет блок двери -->
+    <img src="а1.png" class="menu-logo">
+
+    <!-- PNG-заголовок -->
+    <img src="БЕСКОНЕЧНЫЙ СЕМЕСТР.png" class="game-title-img">
+
+    <!-- 3-я звезда: между заголовком (y≈456) и НАЧАТЬ (y=603) -->
+    <img src="enemy.png" class="star-enemy spin-cw"
+         style="left:298px;top:516px;width:110px;
+                filter:drop-shadow(0 0 6px rgba(200,56,0,.5));">
+
+    <div class="btn-start-wrap" onclick="show('game')">
+      <div class="btn-start">НАЧАТЬ</div>
+    </div>
+
+    <!-- v1.png — кнопка магазина -->
+    <img src="v1.png" class="btn-shop-img" onclick="show('shop')">
+  </div>
+
+  <!-- ════════════ ИГРА ════════════ -->
+  <div class="page" id="page-game">
+    <div class="game-bg"></div>
+    <div id="game-level" style="position:absolute;left:80px;top:66px;color:rgba(255,255,255,.85);font-size:13px;font-weight:900;z-index:5;letter-spacing:1px;">УР. 1</div>
+    <div id="game-coins-display" style="position:absolute;right:75px;top:58px;display:flex;align-items:center;gap:5px;z-index:5;">
+      <img src="coin.png" style="width:22px;height:22px;flex-shrink:0;">
+      <span id="game-coin-count" style="color:rgba(255,255,255,.9);font-size:15px;font-weight:900;">0</span>
+    </div>
+    <div class="ctrl-btn ctrl-btn-pause" onclick="openModal('pause')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#333">
+        <rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>
+      </svg>
+    </div>
+
+    <!-- Модал паузы (внутри page-game) -->
+    <div id="modal-pause">
+      <button class="pause-continue-btn" onclick="closeModal('pause')">ПРОДОЛЖИТЬ ▷</button>
+    </div>
+    <div class="ctrl-btn ctrl-btn-home" onclick="show('menu')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#333"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/>
+        <polyline points="9 21 9 12 15 12 15 21"/>
+      </svg>
+    </div>
+    <div class="maze-container">
+      <canvas id="mazeCanvas"></canvas>
+      <div class="maze-player" id="player"></div>
+      <div class="maze-exit"   id="exitCell"></div>
+    </div>
+
+    <!-- Кнопка невидимости (появляется после покупки) -->
+    <div id="invis-btn" class="invis-btn" onclick="activateInvis()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+      <span id="invis-btn-label">НЕВИДИМОСТЬ</span>
+    </div>
+  </div>
+
+  <!-- ════════════ ПОБЕДА ════════════ -->
+  <div class="page" id="page-win">
+    <div class="result-card win-card"></div>
+    <div class="result-coin-badge">
+      <img src="coin.png" style="width:22px;height:22px;flex-shrink:0;">
+      <span id="win-coin-text">+0</span>
+    </div>
+    <div class="result-btn1" style="left:101px;top:519px;width:184px;height:70px;" onclick="goNextLevel()"></div>
+    <div class="result-btn2" style="left:123px;top:599px;width:142px;height:51px;" onclick="replayLevel()"></div>
+  </div>
+
+  <!-- ════════════ ПОРАЖЕНИЕ ════════════ -->
+  <div class="page" id="page-lose">
+    <div class="result-card lose-card"></div>
+    <div class="result-coin-badge">
+      <img src="coin.png" style="width:22px;height:22px;flex-shrink:0;">
+      <span id="lose-coin-text">-0</span>
+    </div>
+    <div class="result-btn1" style="left:109px;top:547px;width:184px;height:70px;" onclick="replayLevel()"></div>
+    <div class="result-btn2" style="left:130px;top:632px;width:142px;height:51px;" onclick="show('menu')"></div>
+  </div>
+
+  <!-- ════════════ МАГАЗИН ════════════ -->
+  <div class="page" id="page-shop">
+    <div class="dark-bg"></div>
+
+    <!-- Жуки справа -->
+    <div class="shop-bugs">
+      <svg style="width:20px;height:20px;transform:rotate(15deg);opacity:.6" viewBox="0 0 29 27"><ellipse cx="14.5" cy="15" rx="8" ry="11" fill="#141414"/><ellipse cx="14.5" cy="9" rx="6" ry="5" fill="#141414"/><line x1="8" y1="12" x2="2" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="16" x2="1" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="20" x2="2" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="27" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="16" x2="28" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="20" x2="27" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg style="width:18px;height:18px;transform:rotate(-10deg);opacity:.6" viewBox="0 0 29 27"><ellipse cx="14.5" cy="15" rx="8" ry="11" fill="#141414"/><ellipse cx="14.5" cy="9" rx="6" ry="5" fill="#141414"/><line x1="8" y1="12" x2="2" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="16" x2="1" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="20" x2="2" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="27" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="16" x2="28" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="20" x2="27" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg style="width:22px;height:22px;transform:rotate(30deg);opacity:.6" viewBox="0 0 29 27"><ellipse cx="14.5" cy="15" rx="8" ry="11" fill="#141414"/><ellipse cx="14.5" cy="9" rx="6" ry="5" fill="#141414"/><line x1="8" y1="12" x2="2" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="16" x2="1" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="20" x2="2" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="27" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="16" x2="28" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="20" x2="27" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg style="width:19px;height:19px;transform:rotate(-25deg);opacity:.6" viewBox="0 0 29 27"><ellipse cx="14.5" cy="15" rx="8" ry="11" fill="#141414"/><ellipse cx="14.5" cy="9" rx="6" ry="5" fill="#141414"/><line x1="8" y1="12" x2="2" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="16" x2="1" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="20" x2="2" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="12" x2="27" y2="8" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="16" x2="28" y2="16" stroke="#141414" stroke-width="2" stroke-linecap="round"/><line x1="21" y1="20" x2="27" y2="24" stroke="#141414" stroke-width="2" stroke-linecap="round"/></svg>
+    </div>
+
+    <!-- Карточка 1: СКОРОСТЬ -->
+    <div class="shop-card shop-card-1">
+      <div class="shop-left">
+        <div class="shop-info-box">
+          <div class="shop-card-title">СКОРОСТЬ</div>
+          <div class="shop-card-desc">слайд в 1.5× быстрее</div>
+          <div class="shop-stat-box shop-stat-locked" id="speed-stat">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <span id="speed-stat-txt">Цена: 5 монет</span>
+          </div>
+        </div>
+        <button class="shop-btn shop-btn-blue" id="btn-buy-speed" onclick="buySpeed()">КУПИТЬ</button>
+      </div>
+      <div class="shop-right">
+        <img src="Group 47.png">
+      </div>
+    </div>
+
+    <!-- Карточка 2: НЕВИДИМОСТЬ -->
+    <div class="shop-card shop-card-2">
+      <div class="shop-left">
+        <div class="shop-info-box">
+          <div class="shop-card-title">НЕВИДИМОСТЬ</div>
+          <div class="shop-card-desc">враги тебя не заметят</div>
+          <div class="shop-stat-box shop-stat-level" id="invis-stat">
+            <span id="invis-stat-txt">Цена: 8 монет<br><small style="font-weight:700">(10 сек)</small></span>
+          </div>
+        </div>
+        <button class="shop-btn shop-btn-green" id="btn-buy-invis" onclick="buyInvis()">КУПИТЬ</button>
+      </div>
+      <div class="shop-right">
+        <img src="Group 48.png" style="filter:drop-shadow(0 4px 10px rgba(0,0,0,.3));">
+      </div>
+    </div>
+
+    <!-- Кнопка назад -->
+    <div class="shop-back-btn" onclick="show('menu')">ГЛАВНОЕ<br>МЕНЮ</div>
+  </div>
+
+  <!-- ════════════ МОДАЛ: НАСТРОЙКИ ════════════ -->
+  <div id="modal-settings" onclick="handleModalClick(event)">
+    <div class="settings-card" id="settings-card">
+      <button class="settings-close" onclick="closeModal('settings')">✕</button>
+      <div class="settings-row">
+        <!-- Звук -->
+        <div class="settings-pill">
+          <button class="settings-toggle active" id="btn-sound-on" onclick="setSound(true)" title="Звук вкл">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            </svg>
+          </button>
+          <button class="settings-toggle" id="btn-sound-off" onclick="setSound(false)" title="Звук выкл">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+            </svg>
+          </button>
+        </div>
+        <!-- Уведомления -->
+        <div class="settings-pill">
+          <button class="settings-toggle active" id="btn-notif-on" onclick="setNotif(true)" title="Уведомления вкл">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+          </button>
+          <button class="settings-toggle" id="btn-notif-off" onclick="setNotif(false)" title="Уведомления выкл">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              <path d="M18.63 13A17.89 17.89 0 0 1 18 8"/>
+              <path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"/>
+              <path d="M18 8a6 6 0 0 0-9.33-5"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen-vignette"></div>
+</div><!-- .screen -->
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   NAVIGATION
+   ══════════════════════════════════════════════════════════════ */
+function show(name) {
+  if (name === 'win' || name === 'lose') {
+    // Победа/поражение — оставляем игровую страницу видимой ПОЗАДИ (прозрачный оверлей)
+    document.querySelectorAll('.page').forEach(p => {
+      if (p.id !== 'page-game' && p.id !== 'page-' + name) p.classList.remove('active');
+    });
+    document.getElementById('page-game').classList.add('active');
+    document.getElementById('page-' + name).classList.add('active');
+  } else {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+  }
+  if (name === 'game') startGame();
+  if (name === 'menu') refreshMenuCoins();
+  if (name === 'shop') { refreshMenuCoins(); refreshShopUI(); }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MODALS
+   ══════════════════════════════════════════════════════════════ */
+function openModal(id) {
+  document.getElementById('modal-' + id).classList.add('open');
+  if (id === 'pause') gamePaused = true;
+}
+function closeModal(id) {
+  document.getElementById('modal-' + id).classList.remove('open');
+  if (id === 'pause') gamePaused = false;
+}
+function handleModalClick(e) {
+  if (e.target === document.getElementById('modal-settings')) closeModal('settings');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SETTINGS
+   ══════════════════════════════════════════════════════════════ */
+let soundOn = true, notifOn = true;
+const bgMusic = document.getElementById('bgMusic');
+bgMusic.volume = 0.35;
+
+function startMusic() {
+  if (soundOn) bgMusic.play().catch(() => {});
+}
+/* Запуск музыки при первом касании */
+document.addEventListener('touchstart', startMusic, { once: true });
+document.addEventListener('click',      startMusic, { once: true });
+
+/* Музыка выключается при выходе из приложения / переходе в фон */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    bgMusic.pause();
+  } else if (document.visibilityState === 'visible' && soundOn) {
+    bgMusic.play().catch(() => {});
+  }
+});
+window.addEventListener('pagehide', () => bgMusic.pause());
+
+function setSound(on) {
+  soundOn = on;
+  if (on)  bgMusic.play().catch(() => {});
+  else     bgMusic.pause();
+  document.getElementById('btn-sound-on').classList.toggle('active', on);
+  document.getElementById('btn-sound-off').classList.toggle('active', !on);
+}
+function setNotif(on) {
+  notifOn = on;
+  document.getElementById('btn-notif-on').classList.toggle('active', on);
+  document.getElementById('btn-notif-off').classList.toggle('active', !on);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PERSISTENT STATE  (localStorage, как PlayerPrefs в Unity)
+   ══════════════════════════════════════════════════════════════ */
+let currentLevel     = parseInt(localStorage.getItem('gmLevel') || '1');
+let totalCoins       = parseInt(localStorage.getItem('gmCoins')  || '0');
+let levelStartCoins  = 0;  // coins at start of current level run
+let speedBought   = localStorage.getItem('gmSpeed')  === '1';
+let invisBought   = localStorage.getItem('gmInvis')  === '1';
+let invisActive   = false;
+let invisTimer    = null;
+let invisCountdown = null;
+const SPEED_COST  = 5;
+const INVIS_COST  = 8;
+const INVIS_DUR   = 10000; // ms (10 сек)
+const SLIDE_MS_BASE = 80;  // мс/клетка без апгрейда скорости (со скоростью — в 1.5 раза быстрее)
+
+function saveState() {
+  localStorage.setItem('gmLevel', currentLevel);
+  localStorage.setItem('gmCoins',  totalCoins);
+  localStorage.setItem('gmSpeed',  speedBought ? '1' : '0');
+  localStorage.setItem('gmInvis',  invisBought ? '1' : '0');
+}
+function refreshMenuCoins() {
+  document.getElementById('menu-coin-count').textContent = totalCoins;
+}
+function refreshShopUI() {
+  const btnS  = document.getElementById('btn-buy-speed');
+  const statS = document.getElementById('speed-stat');
+  const txtS  = document.getElementById('speed-stat-txt');
+  if (speedBought) {
+    btnS.textContent = 'КУПЛЕНО'; btnS.disabled = true; btnS.style.opacity = '.5';
+    statS.className  = 'shop-stat-box shop-stat-level';
+    txtS.textContent = '✓ Активно';
+  } else {
+    btnS.textContent = 'КУПИТЬ'; btnS.disabled = false; btnS.style.opacity = '1';
+    statS.className  = 'shop-stat-box shop-stat-locked';
+    txtS.textContent = 'Цена: ' + SPEED_COST + ' монет';
+  }
+  const btnI  = document.getElementById('btn-buy-invis');
+  const txtI  = document.getElementById('invis-stat-txt');
+  if (invisBought) {
+    btnI.textContent = 'КУПЛЕНО'; btnI.disabled = true; btnI.style.opacity = '.5';
+    txtI.innerHTML   = '✓ Активно<br><small style="font-weight:700">(10 сек)</small>';
+  } else {
+    btnI.textContent = 'КУПИТЬ'; btnI.disabled = false; btnI.style.opacity = '1';
+    txtI.innerHTML   = 'Цена: ' + INVIS_COST + ' монет<br><small style="font-weight:700">(10 сек)</small>';
+  }
+}
+function buySpeed() {
+  if (speedBought) return;
+  if (totalCoins < SPEED_COST) { showShopMsg('Недостаточно монет!'); return; }
+  totalCoins -= SPEED_COST; speedBought = true;
+  saveState(); refreshMenuCoins(); refreshShopUI(); updatePlayerSprite();
+}
+function buyInvis() {
+  if (invisBought) return;
+  if (totalCoins < INVIS_COST) { showShopMsg('Недостаточно монет!'); return; }
+  totalCoins -= INVIS_COST; invisBought = true;
+  saveState(); refreshMenuCoins(); refreshShopUI(); refreshInvisButton();
+}
+function showShopMsg(msg) {
+  let el = document.getElementById('shop-msg');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'shop-msg';
+    el.style.cssText = 'position:absolute;left:50%;bottom:130px;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;padding:8px 18px;border-radius:20px;font-size:14px;font-weight:700;z-index:50;pointer-events:none;';
+    document.getElementById('page-shop').appendChild(el);
+  }
+  el.textContent = msg; el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.style.opacity = '0', 1800);
+}
+/* Спрайт игрока: невидимость > скорость > обычный */
+function updatePlayerSprite() {
+  const pl = document.getElementById('player');
+  if (!pl) return;
+  if (invisActive) {
+    pl.style.backgroundImage = "url('Group 14 (2).png')";
+    pl.style.opacity = '0.5';   // немного затемнён
+  } else if (speedBought) {
+    pl.style.backgroundImage = "url('vrfcdew.png')";
+    pl.style.opacity = '1';
+  } else {
+    pl.style.backgroundImage = "url('griffon_idle.png')";
+    pl.style.opacity = '1';
+  }
+}
+
+/* Показать/обновить кнопку невидимости (только если куплена) */
+function refreshInvisButton() {
+  const btn = document.getElementById('invis-btn');
+  const lbl = document.getElementById('invis-btn-label');
+  if (!btn) return;
+  btn.style.display = invisBought ? 'flex' : 'none';
+  if (!invisActive) {
+    btn.classList.remove('cooldown');
+    if (lbl) lbl.textContent = 'НЕВИДИМОСТЬ';
+  }
+}
+
+/* Активировать невидимость в игре */
+function activateInvis() {
+  if (!invisBought || invisActive || gameEnded || isDead) return;
+  invisActive = true;
+  updatePlayerSprite();
+
+  const btn = document.getElementById('invis-btn');
+  const lbl = document.getElementById('invis-btn-label');
+  if (btn) btn.classList.add('cooldown');
+
+  let remain = Math.ceil(INVIS_DUR / 1000); // 10
+  if (lbl) lbl.textContent = remain;
+  clearInterval(invisCountdown);
+  invisCountdown = setInterval(() => {
+    remain--;
+    if (lbl) lbl.textContent = remain > 0 ? remain : '';
+    if (remain <= 0) clearInterval(invisCountdown);
+  }, 1000);
+
+  clearTimeout(invisTimer);
+  invisTimer = setTimeout(() => {
+    invisActive = false;
+    updatePlayerSprite();
+    if (btn) btn.classList.remove('cooldown');
+    if (lbl) lbl.textContent = 'НЕВИДИМОСТЬ';
+  }, INVIS_DUR);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MAZE CONSTANTS  (Unity: BASE_ROOMS_W=5, BASE_ROOMS_H=12)
+   ══════════════════════════════════════════════════════════════ */
+const ROOMS_W = 5, ROOMS_H = 12;
+const PGW = 2 * ROOMS_W + 1;   // 11 columns
+const PGH = 2 * ROOMS_H + 1;   // 25 rows
+
+const CANVAS_W = 318, CANVAS_H = 620;
+const BW = Math.floor(CANVAS_W / PGW);           // 28 px/cell
+const BH = Math.floor(CANVAS_H / PGH);           // 24 px/cell
+const CELL = Math.min(BW, BH);                   // 24 — square cells
+const OX = Math.floor((CANVAS_W - PGW * CELL) / 2);  // horizontal margin
+const OY = Math.floor((CANVAS_H - PGH * CELL) / 2);  // vertical margin
+const CL = 21, CT = 21;   // canvas offset inside .maze-container
+const PSIZE = 18;          // player/exit sprite px (matches CSS)
+const ESIZE = 22;          // enemy sprite px
+const CSIZE = 12;          // coin sprite px
+
+const EXIT_GX = PGW - 2;  // 9  — bottom-right room x
+const EXIT_GY = PGH - 2;  // 23 — bottom-right room y
+
+/* ══════════════════════════════════════════════════════════════
+   GAME STATE
+   ══════════════════════════════════════════════════════════════ */
+let pg = [];          // pg[x][y]: true=wall, false=floor
+let playerGX = 1, playerGY = 1;
+let isMoving   = false;
+let sliding    = false;      // идёт ли полёт по клеткам
+let slideDir   = [0,0];      // текущее направление полёта
+let pendingDir = null;       // желаемый поворот (нажат во время полёта)
+let isDead     = false;
+let gameEnded  = false;
+let gamePaused = false;
+let score      = 0;
+let coinsThisRun = 0;   // монеты, собранные именно в этом забеге
+const WIN_BONUS    = 3; // бонус за прохождение уровня
+const LOSE_PENALTY = 2; // штраф за поражение
+let enemies    = [];   // { gx, gy, el, dir, arena }
+let enemyArenas = [];
+let coinElems  = [];   // { gx, gy, el, collected }
+let laserStars = [];   // { gx, gy, el, dir }
+let enemyTimer = null;
+let scoreTimer = null;
+let laserTimer = null;
+const wallImg  = new Image(); wallImg.src = 'e1.png';
+const wall2Img = new Image(); wall2Img.src = 'wall.png';
+let wallStyle  = new Set();
+
+/* ══════════════════════════════════════════════════════════════
+   MAZE GENERATION  (Unity: MazeGenerator.Generate() + GetPixelGrid)
+   DFS perfect maze — identical algorithm, ported to JS
+   ══════════════════════════════════════════════════════════════ */
+/* ── Сид-генератор (mulberry32): каждый сид = один и тот же лабиринт ── */
+let _mazeSeed = 1;
+function mazeRng() {
+  _mazeSeed |= 0; _mazeSeed = (_mazeSeed + 0x6D2B79F5) | 0;
+  let t = Math.imul(_mazeSeed ^ (_mazeSeed >>> 15), 1 | _mazeSeed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+/* 20 фиксированных карт — игра берёт случайную из них */
+const MAP_SEEDS = [
+  10472, 28391, 50137, 71984, 93256,
+  118720, 134509, 156822, 178043, 199317,
+  214688, 233951, 257104, 279466, 301829,
+  328075, 344610, 367992, 389154, 412673
+];
+
+function generateMaze() {
+  pg = [];
+  for (let x = 0; x < PGW; x++) pg[x] = new Array(PGH).fill(true);
+  const vis = [];
+  for (let x = 0; x < ROOMS_W; x++) vis[x] = new Array(ROOMS_H).fill(false);
+
+  /* Perpendicular-first DFS:
+     Always try turning directions BEFORE going straight.
+     This ensures every branch ends in a wall quickly so the player CAN enter it —
+     no room will be a straight-through pass-through unless there's no other option. */
+  (function dfs(cx, cy, fromDx, fromDy) {
+    vis[cx][cy] = true;
+    pg[2*cx+1][2*cy+1] = false;
+    const dirs = rndShuffle([[0,-1],[1,0],[0,1],[-1,0]], mazeRng);
+    // Sort: perpendicular first (score 0), straight last (score 1)
+    dirs.sort((a, b) => {
+      const aStr = (a[0]===fromDx && a[1]===fromDy) ? 1 : 0;
+      const bStr = (b[0]===fromDx && b[1]===fromDy) ? 1 : 0;
+      return aStr - bStr;
+    });
+    for (const [dx, dy] of dirs) {
+      const nx = cx+dx, ny = cy+dy;
+      if (nx>=0 && nx<ROOMS_W && ny>=0 && ny<ROOMS_H && !vis[nx][ny]) {
+        pg[2*cx+1+dx][2*cy+1+dy] = false;
+        dfs(nx, ny, dx, dy);
+      }
+    }
+  })(0, 0, 0, 0);
+
+  // Assign wall tile styles
+  const wCells = [];
+  for (let x = 0; x < PGW; x++)
+    for (let y = 0; y < PGH; y++)
+      if (pg[x][y]) wCells.push(x + ',' + y);
+  rndShuffle(wCells);
+  const e1n = Math.floor(Math.random() * 8) + 3;
+  wallStyle = new Set(wCells.slice(0, e1n));
+}
+
+/* Вырезать прямоугольники 2×3 комнаты для патрулирования врагов */
+function carveEnemyArenas(count) {
+  const W=2, H=3; // 2 широких × 3 высоких = 6 комнат
+  const arenas=[], cands=[];
+  for (let cx=1; cx<=ROOMS_W-W; cx++)
+    for (let cy=2; cy<=ROOMS_H-H-1; cy++)
+      cands.push([cx,cy]);
+  rndShuffle(cands, mazeRng);
+  for (const [cx,cy] of cands) {
+    if (arenas.length>=count) break;
+    const overlap=arenas.some(a=>cx<a.cx+W+1&&cx+W>a.cx-1&&cy<a.cy+H+1&&cy+H>a.cy-1);
+    if (overlap) continue;
+    for (let dx=0;dx<W;dx++)
+      for (let dy=0;dy<H;dy++) {
+        pg[2*(cx+dx)+1][2*(cy+dy)+1]=false;
+        if (dx<W-1) pg[2*(cx+dx)+2][2*(cy+dy)+1]=false;
+        if (dy<H-1) pg[2*(cx+dx)+1][2*(cy+dy)+2]=false;
+      }
+    arenas.push({cx,cy,
+      minGX:2*cx+1, maxGX:2*(cx+W-1)+1,
+      minGY:2*cy+1, maxGY:2*(cy+H-1)+1});
+  }
+  return arenas;
+}
+
+/* Remove ~75% of dead-end rooms by opening one extra wall (braid maze) */
+function makeBraid(percent = 0.75) {
+  const DIRS = [[0,-1],[1,0],[0,1],[-1,0]];
+  for (let cx = 0; cx < ROOMS_W; cx++) {
+    for (let cy = 0; cy < ROOMS_H; cy++) {
+      const open = DIRS.filter(([dx,dy]) => {
+        const nx=cx+dx, ny=cy+dy;
+        return nx>=0&&nx<ROOMS_W&&ny>=0&&ny<ROOMS_H&&!pg[2*cx+1+dx][2*cy+1+dy];
+      });
+      if (open.length === 1 && mazeRng() < percent) {
+        const closed = DIRS.filter(([dx,dy]) => {
+          const nx=cx+dx, ny=cy+dy;
+          return nx>=0&&nx<ROOMS_W&&ny>=0&&ny<ROOMS_H&&pg[2*cx+1+dx][2*cy+1+dy];
+        });
+        if (closed.length > 0) {
+          const [dx,dy] = closed[Math.floor(mazeRng()*closed.length)];
+          pg[2*cx+1+dx][2*cy+1+dy] = false;
+        }
+      }
+    }
+  }
+}
+
+function rndShuffle(a, rng = Math.random) {
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(rng()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CANVAS DRAW
+   ══════════════════════════════════════════════════════════════ */
+function drawMaze() {
+  const c = document.getElementById('mazeCanvas');
+  if (!c) return;
+  c.width = CANVAS_W; c.height = CANVAS_H;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+  const GAP = 2, TW = CELL - GAP, TH = CELL - GAP;
+  for (let x = 0; x < PGW; x++) {
+    for (let y = 0; y < PGH; y++) {
+      if (!pg[x][y]) continue;
+      const px = OX + x*CELL + 1, py = OY + y*CELL + 1;
+      const img = wallStyle.has(x + ',' + y) ? wallImg : wall2Img;
+      if (img.complete && img.naturalWidth > 0)
+        ctx.drawImage(img, px, py, TW, TH);
+      else { ctx.fillStyle = '#f5f2d0'; ctx.fillRect(px, py, TW, TH); }
+    }
+  }
+}
+
+/* Нарисовать оранжевые прямоугольники арен поверх лабиринта */
+function drawArenas(arenas) {
+  const c = document.getElementById('mazeCanvas');
+  if (!c || !arenas || !arenas.length) return;
+  const ctx = c.getContext('2d');
+  for (const a of arenas) {
+    const x1 = OX + a.minGX * CELL - 1;
+    const y1 = OY + a.minGY * CELL - 1;
+    const w  = (a.maxGX - a.minGX + 1) * CELL + 2;
+    const h  = (a.maxGY - a.minGY + 1) * CELL + 2;
+    ctx.fillStyle   = 'rgba(255,90,0,0.13)';
+    ctx.strokeStyle = 'rgba(255,90,0,0.75)';
+    ctx.lineWidth   = 2.5;
+    ctx.fillRect(x1, y1, w, h);
+    ctx.strokeRect(x1, y1, w, h);
+  }
+}
+
+/* pixel coords of grid cell (gx,gy) relative to .maze-container */
+function cellPx(gx, gy, size) {
+  return {
+    left: CL + OX + gx*CELL + Math.floor((CELL - size) / 2),
+    top:  CT + OY + gy*CELL + Math.floor((CELL - size) / 2)
+  };
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PLAYER  — slide-to-wall (Unity: PlayerController.SlideToWall)
+   ══════════════════════════════════════════════════════════════ */
+function cellOpen(x, y) {
+  return x >= 0 && x < PGW && y >= 0 && y < PGH && !pg[x][y];
+}
+
+function tryMove(dx, dy) {
+  if (isDead || gameEnded || gamePaused) return;
+  if (sliding) {
+    // В полёте — запоминаем желаемый поворот, он применится на ближайшей клетке
+    pendingDir = [dx, dy];
+    return;
+  }
+  // Старт полёта, если в эту сторону есть проход
+  if (!cellOpen(playerGX + dx, playerGY + dy)) return;
+  slideDir = [dx, dy];
+  pendingDir = null;
+  sliding = true;
+  isMoving = true;
+  stepSlide();
+}
+
+/* Полёт по одной клетке за шаг — можно завернуть в другой проход на лету */
+function stepSlide() {
+  if (isDead || gameEnded) { sliding = false; isMoving = false; return; }
+  if (gamePaused) { setTimeout(stepSlide, 60); return; }   // пауза не сбрасывает полёт
+
+  // На текущей клетке — если был запрошен поворот и туда открыто, заворачиваем
+  if (pendingDir && cellOpen(playerGX + pendingDir[0], playerGY + pendingDir[1])) {
+    slideDir = pendingDir;
+    pendingDir = null;
+  }
+
+  const [dx, dy] = slideDir;
+  const nx = playerGX + dx, ny = playerGY + dy;
+
+  // Впереди стена — полёт окончен
+  if (!cellOpen(nx, ny)) {
+    sliding = false; isMoving = false; pendingDir = null;
+    checkEnemyCollision();
+    if (!isDead) checkWin();
+    return;
+  }
+
+  // Двигаемся на одну клетку
+  playerGX = nx; playerGY = ny;
+  const dur = speedBought ? Math.round(SLIDE_MS_BASE / 1.5) : SLIDE_MS_BASE; // 53 : 80 мс/клетку
+  const el = document.getElementById('player');
+  el.style.transition = `left ${dur}ms linear, top ${dur}ms linear`;
+  const p = cellPx(nx, ny, PSIZE);
+  el.style.left = p.left + 'px';
+  el.style.top  = p.top  + 'px';
+
+  collectCoinCell(nx, ny);
+  checkEnemyCollision();
+  if (isDead || gameEnded) { sliding = false; isMoving = false; return; }
+  checkWin();
+  if (gameEnded) { sliding = false; isMoving = false; return; }
+
+  setTimeout(stepSlide, dur);
+}
+
+/* Сбор монеты на конкретной клетке */
+function collectCoinCell(cx, cy) {
+  for (const coin of coinElems) {
+    if (!coin.collected && coin.gx === cx && coin.gy === cy) {
+      coin.collected = true;
+      coin.el.style.transition = 'transform .2s,opacity .2s';
+      coin.el.style.transform  = 'scale(2)';
+      coin.el.style.opacity    = '0';
+      setTimeout(() => coin.el.remove(), 220);
+      totalCoins++; coinsThisRun++;
+      saveState(); refreshMenuCoins(); refreshGameCoins();
+    }
+  }
+}
+
+function positionPlayerInstant() {
+  const el = document.getElementById('player');
+  el.style.transition = 'none';
+  el.style.transform  = '';
+  el.style.opacity    = '1';
+  const p = cellPx(playerGX, playerGY, PSIZE);
+  el.style.left = p.left + 'px';
+  el.style.top  = p.top  + 'px';
+}
+
+function positionExit() {
+  const el = document.getElementById('exitCell');
+  const p  = cellPx(EXIT_GX, EXIT_GY, PSIZE);
+  el.style.left = p.left + 'px';
+  el.style.top  = p.top  + 'px';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ENEMIES — random walk along existing corridors (no arena carving)
+   ══════════════════════════════════════════════════════════════ */
+function spawnEnemies(count, arenas=[]) {
+  enemies.forEach(e => e.el && e.el.remove());
+  enemies = [];
+  const mc = document.querySelector('.maze-container');
+  const DIRS = [[0,-1],[1,0],[0,1],[-1,0]];
+  // Резервный пул (если арен не хватает)
+  const pool=[];
+  for (let x=1;x<PGW-1;x+=2)
+    for (let y=5;y<PGH-4;y+=2)
+      if (!pg[x][y]&&!(x===1&&y===1)&&!(x===EXIT_GX&&y===EXIT_GY)) {
+        if (DIRS.filter(([dx,dy])=>!pg[x+dx][y+dy]).length>=2) pool.push([x,y]);
+      }
+  rndShuffle(pool); let pi=0;
+
+  for (let i=0; i<count; i++) {
+    const arena=arenas[i]||null;
+    let ex,ey;
+    if (arena) {
+      ex=2*arena.cx+1; ey=2*(arena.cy+1)+1; // центр арены
+    } else if (pi<pool.length) {
+      [ex,ey]=pool[pi++];
+    } else break;
+    const el=document.createElement('img');
+    el.src='enemy.png'; el.className='in-game-enemy';
+    el.style.cssText=`position:absolute;width:${ESIZE}px;height:${ESIZE}px;z-index:15;transition:left .45s ease,top .45s ease;`;
+    mc.appendChild(el);
+    const p=cellPx(ex,ey,ESIZE);
+    el.style.left=p.left+'px'; el.style.top=p.top+'px';
+    enemies.push({gx:ex,gy:ey,el,dir:DIRS[Math.floor(Math.random()*4)],arena});
+  }
+}
+
+function countOpen(gx, gy) {
+  let n = 0;
+  for (const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]])
+    if (gx+dx>=0&&gx+dx<PGW&&gy+dy>=0&&gy+dy<PGH&&!pg[gx+dx][gy+dy]) n++;
+  return n;
+}
+
+/* Куда доедет игрок, скользя в направлении (dx,dy), пока не упрётся в стену */
+function slideDest(gx, gy, dx, dy) {
+  let x = gx, y = gy;
+  while (true) {
+    const nx = x+dx, ny = y+dy;
+    if (nx<0||nx>=PGW||ny<0||ny>=PGH||pg[nx][ny]) break;
+    x = nx; y = ny;
+  }
+  return [x, y];
+}
+
+/* Проходим ли лабиринт механикой скольжения: можно ли ОСТАНОВИТЬСЯ на выходе.
+   BFS по точкам-остановкам — гарантирует, что есть места разворота до финиша. */
+function isSlideSolvable() {
+  const seen  = new Set(['1,1']);
+  const queue = [[1,1]];
+  while (queue.length) {
+    const [x,y] = queue.shift();
+    if (x===EXIT_GX && y===EXIT_GY) return true;
+    for (const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]]) {
+      const [nx,ny] = slideDest(x,y,dx,dy);
+      const key = nx+','+ny;
+      if ((nx!==x||ny!==y) && !seen.has(key)) {
+        seen.add(key);
+        queue.push([nx,ny]);
+      }
+    }
+  }
+  return false;
+}
+
+function moveEnemies() {
+  if (gamePaused || gameEnded || isDead) return;
+  enemies.forEach(e => {
+    const allDirs = rndShuffle([[0,-1],[1,0],[0,1],[-1,0]]);
+    const options = allDirs
+      .map(([dx,dy]) => {
+        const nx=e.gx+dx, ny=e.gy+dy;
+        if (nx<0||nx>=PGW||ny<0||ny>=PGH||pg[nx][ny]) return null;
+        // Ограничить движение ареной если назначена
+        if (e.arena&&(nx<e.arena.minGX||nx>e.arena.maxGX||ny<e.arena.minGY||ny>e.arena.maxGY)) return null;
+        return { dir:[dx,dy], nx, ny, open: countOpen(nx,ny) };
+      })
+      .filter(Boolean);
+    if (!options.length) return;
+    // 70% — предпочитаем открытое пространство, 30% — случайно
+    options.sort((a,b) => b.open - a.open);
+    const chosen = Math.random() < 0.7 ? options[0] : options[Math.floor(Math.random()*options.length)];
+    e.dir = chosen.dir; e.gx = chosen.nx; e.gy = chosen.ny;
+    const p = cellPx(e.gx, e.gy, ESIZE);
+    e.el.style.left = p.left+'px'; e.el.style.top = p.top+'px';
+  });
+  setTimeout(checkEnemyCollision, 320);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LASER WALL STARS — spinning star in wall, shoots чем этот стреляет.png
+   Stars fire alternately (поочередно)
+   ══════════════════════════════════════════════════════════════ */
+let currentShooterIdx = 0;
+
+function spawnLaserStars(count) {
+  laserStars.forEach(s => s.el && s.el.remove());
+  laserStars = [];
+  document.querySelectorAll('.laser-proj').forEach(p => p.remove());
+  currentShooterIdx = 0;
+
+  const mc = document.querySelector('.maze-container');
+  const candidates = [];
+
+  for (let x=1; x<PGW-1; x++) {
+    for (let y=2; y<PGH-2; y++) {
+      if (!pg[x][y]) continue;  // must be wall
+      // Find best shooting direction: longest clear corridor in one of 4 dirs
+      let bestDir=null, bestLen=0;
+      for (const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+        let len=0, cx=x+dx, cy=y+dy;
+        while (cx>=0&&cx<PGW&&cy>=0&&cy<PGH&&!pg[cx][cy]) { len++; cx+=dx; cy+=dy; }
+        if (len>=4 && len>bestLen) { bestLen=len; bestDir=[dx,dy]; }
+      }
+      if (bestDir) candidates.push({ x, y, dir:bestDir, len:bestLen });
+    }
+  }
+
+  // Pick cells spread across the maze (not all clustered at top)
+  rndShuffle(candidates);
+  // Sort by corridor length (prefer longer corridors = more dangerous)
+  candidates.sort((a,b) => b.len - a.len);
+
+  const chosen = [];
+  for (const c of candidates) {
+    if (chosen.length >= count) break;
+    // Avoid placing two stars too close together
+    const tooClose = chosen.some(o => Math.abs(o.x-c.x)<=4 && Math.abs(o.y-c.y)<=4);
+    if (!tooClose) chosen.push(c);
+  }
+
+  for (const wc of chosen) {
+    const el = document.createElement('img');
+    el.src = 'enemy.png';        // spinning star embedded in wall
+    el.className = 'wall-star';
+    mc.appendChild(el);
+    const p = cellPx(wc.x, wc.y, 22);
+    el.style.left = p.left + 'px';
+    el.style.top  = p.top  + 'px';
+    laserStars.push({ gx:wc.x, gy:wc.y, dir:wc.dir, el });
+  }
+}
+
+/* Called by laserTimer — fires ONE star at a time, alternating */
+function fireLasers() {
+  if (gamePaused || gameEnded || isDead || laserStars.length===0) return;
+  const star = laserStars[currentShooterIdx % laserStars.length];
+  currentShooterIdx = (currentShooterIdx + 1) % laserStars.length;
+  // Вспышка на звезде в момент выстрела
+  star.el.style.filter = 'drop-shadow(0 0 10px rgba(255,220,0,1)) brightness(2.5)';
+  star.el.style.transform = 'scale(1.6)';
+  setTimeout(() => {
+    if (star.el) { star.el.style.filter = ''; star.el.style.transform = ''; }
+  }, 180);
+  fireProjectile(star);
+}
+
+function fireProjectile(star) {
+  const mc = document.querySelector('.maze-container');
+  if (!mc) return;
+  const [dx,dy] = star.dir;
+
+  // Путь полёта: клетки от звезды до первой стены
+  const path = [];
+  let cx=star.gx+dx, cy=star.gy+dy;
+  while (cx>=0&&cx<PGW&&cy>=0&&cy<PGH&&!pg[cx][cy]) {
+    path.push([cx,cy]); cx+=dx; cy+=dy;
+  }
+  if (path.length===0) return;
+
+  const proj = document.createElement('img');
+  proj.src = 'чем этот стреляет.png';
+  proj.className = 'laser-proj';
+  mc.appendChild(proj);
+
+  // Начальная точка — на звезде, конечная — последняя клетка коридора
+  const startP = cellPx(star.gx, star.gy, 36);
+  const endCell = path[path.length - 1];
+  const endP    = cellPx(endCell[0], endCell[1], 36);
+
+  proj.style.left = startP.left + 'px';
+  proj.style.top  = startP.top  + 'px';
+
+  const baseRot = dx===1?0 : dx===-1?180 : dy===1?90 : -90;
+
+  // Скорость полёта: мс на одну клетку (видимый, но не медленный)
+  const MS_PER_CELL = 130;
+  const totalMs   = (path.length + 1) * MS_PER_CELL; // +1 клетка на старт у звезды
+  const startTime = performance.now();
+  let   lastIdx   = -1;
+  let   finished  = false;
+
+  function done() {
+    if (finished) return;
+    finished = true;
+    if (proj.parentNode) proj.remove();
+  }
+
+  function impactFlash() {
+    if (!mc.isConnected) return;
+    const flash = document.createElement('div');
+    flash.style.cssText = `position:absolute;width:28px;height:28px;border-radius:50%;background:rgba(255,160,0,.95);z-index:25;pointer-events:none;transition:transform .22s,opacity .22s;left:${endP.left-4}px;top:${endP.top-4}px;`;
+    mc.appendChild(flash);
+    requestAnimationFrame(() => { flash.style.transform='scale(2.4)'; flash.style.opacity='0'; });
+    setTimeout(() => flash.remove(), 260);
+  }
+
+  // Покадровая анимация полёта
+  function step(now) {
+    if (finished) return;
+    if (isDead || gameEnded || !proj.parentNode) { done(); return; }
+
+    const t = Math.min(1, (now - startTime) / totalMs);
+
+    // Линейная интерполяция позиции
+    proj.style.left = (startP.left + (endP.left - startP.left) * t) + 'px';
+    proj.style.top  = (startP.top  + (endP.top  - startP.top ) * t) + 'px';
+    // Вращение во время полёта
+    proj.style.transform = `rotate(${baseRot + (now - startTime) * 0.9}deg)`;
+
+    // Проверка попадания по текущей клетке
+    const cellProgress = t * (path.length + 1) - 1; // -1: первая клетка у звезды
+    const idx = Math.floor(cellProgress);
+    if (idx >= 0 && idx < path.length && idx !== lastIdx) {
+      lastIdx = idx;
+      const [pcx, pcy] = path[idx];
+      if (pcx===playerGX && pcy===playerGY && !invisActive) {
+        killPlayer();
+        done();
+        return;
+      }
+    }
+
+    if (t >= 1) { impactFlash(); done(); return; }
+    requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   COINS  (Unity: CoinPickup — collected on player overlap)
+   ══════════════════════════════════════════════════════════════ */
+function spawnCoins(count) {
+  coinElems.forEach(c => c.el && c.el.remove());
+  coinElems = [];
+  const mc   = document.querySelector('.maze-container');
+  const pool = [];
+  for (let x=1; x<PGW-1; x++)
+    for (let y=1; y<PGH-1; y++)
+      if (!pg[x][y] && !(x===1&&y===1) && !(x===EXIT_GX&&y===EXIT_GY))
+        pool.push([x,y]);
+  rndShuffle(pool);
+
+  for (let i=0; i<Math.min(count,pool.length); i++) {
+    const [cx,cy] = pool[i];
+    const el = document.createElement('img');
+    el.src = 'coin.png';
+    el.style.cssText = `position:absolute;width:${CSIZE}px;height:${CSIZE}px;z-index:12;`;
+    mc.appendChild(el);
+    const p = cellPx(cx, cy, CSIZE);
+    el.style.left = p.left+'px'; el.style.top = p.top+'px';
+    coinElems.push({ gx:cx, gy:cy, el, collected:false });
+  }
+}
+
+function collectCoinsAlongPath(sx, sy, tx, ty, dx, dy) {
+  let cx=sx, cy=sy;
+  while (true) {
+    cx+=dx; cy+=dy;
+    for (const coin of coinElems) {
+      if (!coin.collected && coin.gx===cx && coin.gy===cy) {
+        coin.collected = true;
+        coin.el.style.transition = 'transform .2s,opacity .2s';
+        coin.el.style.transform  = 'scale(2)';
+        coin.el.style.opacity    = '0';
+        setTimeout(() => coin.el.remove(), 220);
+        totalCoins++;
+        coinsThisRun++;
+        saveState();
+        refreshMenuCoins();
+        refreshGameCoins();
+      }
+    }
+    if (cx===tx && cy===ty) break;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   COLLISION & WIN/LOSE  (Unity: GameManager.Win / GameOver)
+   ══════════════════════════════════════════════════════════════ */
+function checkEnemyCollision() {
+  if (isDead || gameEnded || invisActive) return;
+  for (const e of enemies) {
+    if (e.gx===playerGX && e.gy===playerGY) { killPlayer(); return; }
+  }
+}
+
+function killPlayer() {
+  if (isDead) return;
+  isDead = true; gameEnded = true;
+  clearInterval(enemyTimer); clearInterval(scoreTimer); clearInterval(laserTimer);
+  currentLevel = 1;
+  // При поражении теряем монеты, собранные в этом забеге
+  totalCoins = Math.max(0, totalCoins - coinsThisRun);
+  saveState();
+  const net = -coinsThisRun;
+  const loseEl = document.getElementById('lose-coin-text');
+  if (loseEl) loseEl.textContent = '0';
+  refreshMenuCoins();
+  document.querySelectorAll('.laser-proj').forEach(b => b.remove());
+  const el = document.getElementById('player');
+  el.style.transition = 'transform .5s,opacity .5s';
+  el.style.transform  = 'rotate(720deg) scale(0)';
+  el.style.opacity    = '0';
+  setTimeout(() => { show('lose'); animateResultCoins('lose-coin-text', net); }, 650);
+}
+
+function checkWin() {
+  if (playerGX===EXIT_GX && playerGY===EXIT_GY) {
+    gameEnded = true;
+    clearInterval(enemyTimer); clearInterval(scoreTimer); clearInterval(laserTimer);
+    saveState();
+    // Заработано ровно столько монет, сколько собрано в этом забеге
+    const earned = coinsThisRun;
+    const el = document.getElementById('win-coin-text');
+    if (el) el.textContent = '+0';
+    refreshMenuCoins();
+    setTimeout(() => { show('win'); animateResultCoins('win-coin-text', earned); }, 350);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   IN-GAME COIN DISPLAY
+   ══════════════════════════════════════════════════════════════ */
+function refreshGameCoins() {
+  const el = document.getElementById('game-coin-count');
+  if (el) el.textContent = totalCoins;
+}
+
+/* Красивый анимированный подсчёт монет на экране победы/поражения */
+function animateResultCoins(elId, target) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const dur   = 900;
+  const start = performance.now();
+  const sign  = target > 0 ? '+' : '';
+  const badge = el.closest('.result-coin-badge');
+  function frame(now) {
+    const t = Math.min(1, (now - start) / dur);
+    const eased = 1 - Math.pow(1 - t, 3);   // ease-out
+    el.textContent = sign + Math.round(target * eased);
+    if (t < 1) requestAnimationFrame(frame);
+    else {
+      el.textContent = sign + target;
+      // финальный «пульс» бейджа
+      if (badge) {
+        badge.style.transition = 'transform .18s ease';
+        badge.style.transform  = 'translateX(-50%) scale(1.18)';
+        setTimeout(() => { badge.style.transform = 'translateX(-50%) scale(1)'; }, 180);
+      }
+    }
+  }
+  requestAnimationFrame(frame);
+}
+function startScoreTimer() {
+  clearInterval(scoreTimer);
+  refreshGameCoins();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MAIN START  (Unity: SceneBootstrap.BuildLevel)
+   ══════════════════════════════════════════════════════════════ */
+function startGame() {
+  clearInterval(enemyTimer); clearInterval(scoreTimer); clearInterval(laserTimer);
+  enemies.forEach(e => e.el && e.el.remove());
+  coinElems.forEach(c => c.el && c.el.remove());
+  laserStars.forEach(s => s.el && s.el.remove());
+  document.querySelectorAll('.laser-proj').forEach(p => p.remove());
+  enemies = []; coinElems = []; laserStars = [];
+  clearTimeout(invisTimer); clearInterval(invisCountdown); invisActive = false;
+  const pl = document.getElementById('player');
+  if (pl) pl.style.opacity = '1';
+  updatePlayerSprite();
+  refreshInvisButton();
+
+  isMoving=false; sliding=false; pendingDir=null; isDead=false; gameEnded=false; gamePaused=false;
+  levelStartCoins = totalCoins;
+  coinsThisRun = 0;
+
+  const eCount = Math.min(currentLevel, 5);
+  const cCount = Math.max(3, 7 - currentLevel);
+
+  // Берём одну из 20 карт, проходимую скольжением (есть точки разворота до выхода)
+  const order = rndShuffle(MAP_SEEDS.slice());
+  let solved = false;
+  for (const seed of order) {
+    _mazeSeed = seed;
+    generateMaze();
+    makeBraid(0.3);                       // меньше «раскрытия» = больше стен-стопперов
+    enemyArenas = carveEnemyArenas(eCount);
+    if (isSlideSolvable()) { solved = true; break; }
+  }
+  // Запасной вариант (на случай если ни одна из 20 не подошла)
+  if (!solved) {
+    let guard = 0;
+    do {
+      _mazeSeed = (Math.random()*1e9) | 0;
+      generateMaze();
+      makeBraid(0.3);
+      enemyArenas = carveEnemyArenas(eCount);
+      guard++;
+    } while (!isSlideSolvable() && guard < 300);
+  }
+  spawnEnemies(eCount, enemyArenas);
+
+  playerGX=1; playerGY=1;
+  positionPlayerInstant();
+  positionExit();
+
+  spawnCoins(cCount);
+
+  // Spawn laser stars (spread across maze)
+  const lsCount = Math.min(2 + Math.floor(currentLevel / 2), 6);
+  spawnLaserStars(lsCount);
+
+  // Redraw after arena carving — wait for both wall images
+  const redraw = () => { drawMaze(); };
+  redraw();
+  if (!wallImg.complete)  { wallImg.onload  = redraw; wallImg.onerror  = redraw; }
+  if (!wall2Img.complete) { wall2Img.onload = redraw; wall2Img.onerror = redraw; }
+
+  const lvlEl = document.getElementById('game-level');
+  if (lvlEl) lvlEl.textContent = 'УР. ' + currentLevel;
+
+  enemyTimer = setInterval(moveEnemies, 750);
+  laserTimer = setInterval(fireLasers, 2500);  // fire every 2.5s
+  startScoreTimer();
+  refreshMenuCoins();
+  refreshGameCoins();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LEVEL TRANSITIONS  (Unity: SceneBootstrap.GoToNextLevel / RestartGame)
+   ══════════════════════════════════════════════════════════════ */
+function goNextLevel()  { currentLevel++; saveState(); show('game'); }
+function replayLevel()  { show('game'); }
+function restartGame()  { currentLevel=1; saveState(); show('game'); }
+
+/* ══════════════════════════════════════════════════════════════
+   INPUT — keyboard + swipe gestures
+   ══════════════════════════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('page-game').classList.contains('active')) return;
+  const m = {
+    ArrowUp:[0,-1], ArrowDown:[0,1], ArrowLeft:[-1,0], ArrowRight:[1,0],
+    w:[0,-1], s:[0,1], a:[-1,0], d:[1,0],          // WASD
+    W:[0,-1], S:[0,1], A:[-1,0], D:[1,0],
+    ц:[0,-1], ы:[0,1], ф:[-1,0], в:[1,0],          // WASD на рус. раскладке
+    Ц:[0,-1], Ы:[0,1], Ф:[-1,0], В:[1,0]
+  };
+  if (m[e.key]) { e.preventDefault(); tryMove(...m[e.key]); }
+});
+
+let _sx=0, _sy=0;
+const _gEl = document.getElementById('page-game');
+_gEl.addEventListener('touchstart', e => { _sx=e.touches[0].clientX; _sy=e.touches[0].clientY; }, {passive:true});
+_gEl.addEventListener('touchend',   e => {
+  const dx=e.changedTouches[0].clientX-_sx, dy=e.changedTouches[0].clientY-_sy;
+  if (Math.abs(dx)<12 && Math.abs(dy)<12) return;
+  if (Math.abs(dx)>Math.abs(dy)) tryMove(dx>0?1:-1, 0);
+  else tryMove(0, dy>0?1:-1);
+}, {passive:true});
+
+/* Prevent bounce/scroll on mobile */
+document.addEventListener('touchmove', e => { if (e.cancelable) e.preventDefault(); }, {passive:false});
+</script>
+</body>
+</html>

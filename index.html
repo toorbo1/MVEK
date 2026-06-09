@@ -79,6 +79,30 @@
   .download-zone:hover  { background: rgba(255,255,255,0.12); }
   .download-zone:active { transform: scale(0.97); }
 
+  /* Явные кнопки выбора платформы под блоком «Скачать» */
+  .dl-row {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    justify-content: center;
+    padding: 22px 16px 30px;
+    background: #19191c;
+  }
+  .dl-btn {
+    flex: 1 1 0; min-width: 150px; max-width: 240px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    height: 58px; border: none; border-radius: 16px;
+    font-family: inherit; font-size: 17px; font-weight: 800; color: #141412;
+    cursor: pointer; text-decoration: none;
+    background: linear-gradient(180deg,#8ee04a,#5bb820);
+    box-shadow: 0 5px 16px rgba(0,0,0,.4);
+    transition: transform .08s, filter .12s;
+  }
+  .dl-btn:hover  { filter: brightness(1.06); transform: translateY(-2px); }
+  .dl-btn:active { transform: scale(.97); }
+  .dl-btn .ic { font-size: 20px; line-height: 1; }
+  .dl-btn.ios     { background: linear-gradient(180deg,#f2f2f4,#cfd2d6); }
+  .dl-btn.android { background: linear-gradient(180deg,#8ee04a,#5bb820); }
+  .dl-btn.win     { background: linear-gradient(180deg,#5bbfdf,#3da0c4); }
+
 </style>
 </head>
 <body>
@@ -102,6 +126,13 @@
     <img src="ger.png" alt="Скачать">
     <a id="download-btn" class="download-zone" href="#"
        aria-label="Скачать"></a>
+  </div>
+
+  <!-- Кнопки выбора платформы -->
+  <div class="dl-row">
+    <a class="dl-btn ios"     onclick="goDownload('ios'); return false;"     href="#"><span class="ic"></span> iPhone</a>
+    <a class="dl-btn android" onclick="goDownload('android'); return false;" href="#"><span class="ic">🤖</span> Android</a>
+    <a class="dl-btn win"     onclick="goDownload('pc'); return false;"      href="#"><span class="ic">🪟</span> Windows</a>
   </div>
 
   <!-- №4 ГЕЙМПЛЕЙ -->
@@ -132,16 +163,31 @@
     return null; // локальный просмотр / не на GitHub Pages
   }
 
-  function isMobile() {
-    return /android|iphone|ipad|ipod|iemobile|blackberry|opera mini|mobile/i.test(navigator.userAgent);
+  function detectPlatform() {
+    var ua = navigator.userAgent;
+    if (/android/i.test(ua)) return 'android';
+    if (/iphone|ipad|ipod/i.test(ua) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return 'ios';
+    return 'pc';
   }
 
-  document.getElementById('download-btn').addEventListener('click', function (e) {
-    e.preventDefault();
+  /* target: 'ios' | 'android' | 'pc'
+     iPhone → веб-версия игры (PWA, «На экран Домой»); остальные → файл из Releases */
+  function goDownload(target) {
+    if (target === 'ios') {
+      // на iPhone .ipa поставить нельзя — открываем веб-игру (её можно «Добавить на экран Домой»)
+      window.location.href = './play/';
+      return;
+    }
     var base = releaseBase();
     if (!base) { alert('Скачивание заработает на опубликованном сайте (GitHub Pages).'); return; }
-    var file = isMobile() ? 'MVEC.apk' : 'MVEC.exe';
-    window.location.href = base + file;
+    window.location.href = base + (target === 'android' ? 'MVEC.apk' : 'MVEC.exe');
+  }
+
+  // Большая кнопка «СКАЧАТЬ» — сама определяет платформу
+  document.getElementById('download-btn').addEventListener('click', function (e) {
+    e.preventDefault();
+    goDownload(detectPlatform());
   });
 </script>
 
