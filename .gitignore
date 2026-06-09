@@ -1,4 +1,5 @@
-# Сборки раздаются через GitHub Releases, не храним их в репозитории
-MVEC.apk
-MVEC.exe
+# Сборки раздаём прямо с GitHub Pages из папки dl/ (надёжнее Releases-CDN).
+# Игнорируем только временные копии в корне, не трогаем dl/
+/MVEC.apk
+/MVEC.exe
 .claude/

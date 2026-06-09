@@ -123,16 +123,6 @@
      Ссылки берутся из GitHub Releases. База вычисляется из адреса
      GitHub Pages (<логин>.github.io/<репозиторий>/), поэтому ничего
      не нужно прописывать вручную. */
-  function releaseBase() {
-    var host = location.hostname;
-    var repo = location.pathname.split('/').filter(Boolean)[0];
-    if (host.indexOf('github.io') !== -1 && repo) {
-      var user = host.split('.')[0];
-      return 'https://github.com/' + user + '/' + repo + '/releases/latest/download/';
-    }
-    return null; // локальный просмотр / не на GitHub Pages
-  }
-
   function detectPlatform() {
     var ua = navigator.userAgent;
     if (/android/i.test(ua)) return 'android';
@@ -142,16 +132,12 @@
   }
 
   /* target: 'ios' | 'android' | 'pc'
-     iPhone → веб-версия игры (PWA, «На экран Домой»); остальные → файл из Releases */
+     Файлы раздаются прямо с GitHub Pages (папка dl/) — надёжнее, чем Releases-CDN.
+     iPhone → веб-версия игры (PWA, «На экран Домой»). */
   function goDownload(target) {
-    if (target === 'ios') {
-      // на iPhone .ipa поставить нельзя — открываем веб-игру (её можно «Добавить на экран Домой»)
-      window.location.href = './play/';
-      return;
-    }
-    var base = releaseBase();
-    if (!base) { alert('Скачивание заработает на опубликованном сайте (GitHub Pages).'); return; }
-    window.location.href = base + (target === 'android' ? 'MVEC.apk' : 'MVEC.exe');
+    if (target === 'ios')     { window.location.href = './play/'; return; }
+    if (target === 'android') { window.location.href = './dl/MVEC.apk'; return; }
+    window.location.href = './dl/MVEC.exe';
   }
 
   // Большая кнопка «СКАЧАТЬ» — сама определяет платформу
