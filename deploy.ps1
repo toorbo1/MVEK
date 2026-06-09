@@ -53,7 +53,8 @@ if (-not $exists) {
 } else {
     git remote remove origin 2>$null
     git remote add origin "https://github.com/$User/$Repo.git"
-    git push -u origin main | Out-Host
+    # первый пуш сайта — устанавливаем содержимое (force, если в репо был README)
+    git push -u origin main --force | Out-Host
 }
 
 # 3. включить GitHub Pages (ветка main, корень)
