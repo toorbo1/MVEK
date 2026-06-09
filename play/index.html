@@ -190,6 +190,11 @@ body {
 .invis-btn.cooldown svg { display:none; } /* во время отсчёта вместо глаза — число */
 #invis-btn-label { display:none; font-weight:900; font-size:20px; color:#fff; }
 .invis-btn.cooldown #invis-btn-label { display:block; }
+/* Использована за этот уровень — серая и некликабельная */
+.invis-btn.used {
+  background:linear-gradient(180deg,#9aa0a6,#6f767c);
+  opacity:.5; cursor:default; pointer-events:none;
+}
 .in-game-enemy {
   animation:enemySpinIG 1.5s linear infinite;
   will-change:left,top;
@@ -673,6 +678,7 @@ let invisBought   = localStorage.getItem('gmInvis')  === '1';
 let invisActive   = false;
 let invisTimer    = null;
 let invisCountdown = null;
+let invisUsedThisLevel = false;   // невидимость — 1 раз за уровень
 const SPEED_COST  = 5;
 const INVIS_COST  = 8;
 const INVIS_DUR   = 10000; // ms (10 сек)
@@ -758,14 +764,16 @@ function refreshInvisButton() {
   btn.style.display = invisBought ? 'flex' : 'none';
   if (!invisActive) {
     btn.classList.remove('cooldown');
-    if (lbl) lbl.textContent = 'НЕВИДИМОСТЬ';
+    btn.classList.toggle('used', invisUsedThisLevel);  // серая, если уже использована
+    if (lbl) lbl.textContent = '';
   }
 }
 
-/* Активировать невидимость в игре */
+/* Активировать невидимость в игре (1 раз за уровень) */
 function activateInvis() {
-  if (!invisBought || invisActive || gameEnded || isDead) return;
+  if (!invisBought || invisActive || invisUsedThisLevel || gameEnded || isDead) return;
   invisActive = true;
+  invisUsedThisLevel = true;
   updatePlayerSprite();
 
   const btn = document.getElementById('invis-btn');
@@ -785,8 +793,8 @@ function activateInvis() {
   invisTimer = setTimeout(() => {
     invisActive = false;
     updatePlayerSprite();
-    if (btn) btn.classList.remove('cooldown');
-    if (lbl) lbl.textContent = 'НЕВИДИМОСТЬ';
+    if (btn) { btn.classList.remove('cooldown'); btn.classList.add('used'); } // серая до конца уровня
+    if (lbl) lbl.textContent = '';
   }, INVIS_DUR);
 }
 
@@ -1484,6 +1492,7 @@ function startGame() {
   document.querySelectorAll('.laser-proj').forEach(p => p.remove());
   enemies = []; coinElems = []; laserStars = [];
   clearTimeout(invisTimer); clearInterval(invisCountdown); invisActive = false;
+  invisUsedThisLevel = false;
   const pl = document.getElementById('player');
   if (pl) pl.style.opacity = '1';
   updatePlayerSprite();
